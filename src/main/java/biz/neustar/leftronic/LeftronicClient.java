@@ -42,7 +42,7 @@ public class LeftronicClient {
      * @throws LeftronicException when a non-200 HTTP response code is returned
      */
     public void sendNumber(String streamName, int value) throws IOException, LeftronicException {
-        post(streamName, value);
+        sendPoint(streamName, value);
     }
 
     /**
@@ -55,7 +55,7 @@ public class LeftronicClient {
      * @throws LeftronicException when a non-200 HTTP response code is returned
      */
     public void sendGeoPoint(String streamName, double lat, double lon) throws IOException, LeftronicException {
-        post(streamName, new LatLong(lat, lon));
+        sendPoint(streamName, new LatLong(lat, lon));
     }
 
     /**
@@ -68,44 +68,49 @@ public class LeftronicClient {
      * @throws LeftronicException when a non-200 HTTP response code is returned
      */
     public void sendText(String streamName, String title, String message) throws LeftronicException, IOException {
-        post(streamName, new Text(title, message));
+        sendPoint(streamName, new Text(title, message));
     }
-    
+
     /**
      * Sends a "Custom Text" data point to the supplied Leftronic stream.
      *
      * @param streamName target widget/stream
      * @param title the title of the text to be displayed
      * @param message the actual message of the text to be displayed
+     * @param imgUrl the image url
      * @throws IOException when there is an IO problem such as making a network request
      * @throws LeftronicException when a non-200 HTTP response code is returned
      */
     public void sendText(String streamName, String title, String message, String imgUrl) throws LeftronicException, IOException {
         Text text = new Text(title, message);
         text.setImgUrl(imgUrl);
-    	post(streamName, text);
+        sendPoint(streamName, text);
     }
-    
 
     /**
      * Sends a "Custom Leaderboard" data point to the supplied Leftronic stream.
      *
      * @param streamName target widget/stream
-     * @param entries the list of leaderboard entries, which is a name/value pair (String->int)
+     * @param entries the list of leaderboard entries, which is a name/value pair (String, int)
      * @throws IOException when there is an IO problem such as making a network request
      * @throws LeftronicException when a non-200 HTTP response code is returned
      */
     public void sendLeaderboard(String streamName, LeaderboardEntry... entries) throws LeftronicException, IOException {
         ArrayList<LeaderboardEntry> list = new ArrayList<LeaderboardEntry>();
         Collections.addAll(list, entries);
-        post(streamName, new Leaderboard(list));
+        sendPoint(streamName, new Leaderboard(list));
     }
 
     /**
      * Alternative form of sendLeaderboard that takes a List rather than var-args/array.
+     *
+     * @param streamName target widget/stream
+     * @param entries the list of leaderboard entries, which is a name/value pair (String, int)
+     * @throws IOException when there is an IO problem such as making a network request
+     * @throws LeftronicException when a non-200 HTTP response code is returned
      */
     public void sendLeaderboard(String streamName, List<LeaderboardEntry> entries) throws LeftronicException, IOException {
-        post(streamName, new Leaderboard(entries));
+        sendPoint(streamName, new Leaderboard(entries));
     }
 
     /**
@@ -121,27 +126,56 @@ public class LeftronicClient {
         for (String entry : entries) {
             list.add(new LeftronicListEntry(entry));
         }
-        post(streamName, new LeftronicList(list));
+        sendPoint(streamName, new LeftronicList(list));
     }
 
     /**
      * Alternative form of sendList that takes a List rather than var-args/array.
+     *
+     * @param streamName target widget/stream
+     * @param entries the list of text elements to display
+     * @throws IOException when there is an IO problem such as making a network request
+     * @throws LeftronicException when a non-200 HTTP response code is returned
      */
     public void sendList(String streamName, List<String> entries) throws LeftronicException, IOException {
         List<LeftronicListEntry> list = new ArrayList<LeftronicListEntry>(entries.size());
         for (String entry : entries) {
             list.add(new LeftronicListEntry(entry));
         }
-        post(streamName, new LeftronicList(list));
+        sendPoint(streamName, new LeftronicList(list));
     }
 
-    private void post(String streamName, Object value) throws IOException, LeftronicException {
-        HttpPost post = new HttpPost("https://beta.leftronic.com/customSend/");
-
+    /**
+     * Sends a data point to the supplied Leftronic stream.
+     *
+     * @param streamName target widget/stream
+     * @param value the data to send. this can be any object which serializes to a valid leftronic point format
+     * @throws IOException when there is an IO problem such as making a network request
+     * @throws LeftronicException when a non-200 HTTP response code is returned
+     */
+    public void sendPoint(String streamName, Object value) throws IOException, LeftronicException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         mapper.writeValue(baos, new Data(accessKey, streamName, value));
-        post.setEntity(new ByteArrayEntity(baos.toByteArray()));
+        post(baos);
+    }
 
+    /**
+     * Sends a command to the supplied Leftronic stream.
+     *
+     * @param streamName target widget/stream
+     * @param command the command to send
+     * @throws IOException when there is an IO problem such as making a network request
+     * @throws LeftronicException when a non-200 HTTP response code is returned
+     */
+    public void sendCommand(String streamName, String command) throws IOException, LeftronicException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        mapper.writeValue(baos, new Command(accessKey, streamName, command));
+        post(baos);
+    }
+
+    private void post(ByteArrayOutputStream data) throws IOException, LeftronicException {
+        HttpPost post = new HttpPost("https://www.leftronic.com/customSend/");
+        post.setEntity(new ByteArrayEntity(data.toByteArray()));
         HttpResponse response = null;
         try {
             response = client.execute(post);

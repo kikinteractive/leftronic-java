@@ -1,7 +1,7 @@
 Leftronic Java API
 ==================
 
-This is a simple Java API that wraps the [Leftronic](http://leftronic.com/) REST APIs documented [here](https://beta.leftronic.com/api/).
+This is a simple Java API that wraps the [Leftronic](http://leftronic.com/) REST APIs documented [here](https://leftronic.com/api/).
 
 Downloading
 -----------

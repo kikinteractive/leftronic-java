@@ -2,3 +2,5 @@
 *.ipr
 *.iws
 target
+
+nb-configuration.xml
